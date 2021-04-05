@@ -1,0 +1,27 @@
+{
+  "system": {
+    "logging": {
+      "level": "INFO",
+      "filename": "./log/shorty.log",
+      "max_size_kb": 1024
+    },
+    "db_file": "shorty.db"
+  },
+  "service": {
+    "name": "Shorty 3",
+    "version": "2021.0326.1",
+    "host": ":8080",
+    "admin": [
+      "gonyi@acxiom.com"
+    ]
+  },
+  "slack": {
+    "token": "1234-1234-1234",
+    "syscmd": "sys",
+    "accept_challenge": true
+  },
+  "modules": {
+    "directory": "./modules",
+    "conf_file": "shorty_module.json"
+  }
+}

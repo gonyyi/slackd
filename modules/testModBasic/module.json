@@ -1,0 +1,30 @@
+{
+  "module": {
+    "interface": 3,
+    "entryPoint": "test.py",
+    "restriction": {
+      "enable": true,
+      "users": {
+        "gonyi@acxiom.com": "{\"slackID\":\"abcdeef\"}"
+      }
+    }
+  },
+  "info": {
+    "name": "testModule",
+    "version": "v0.0.1",
+    "created": "Apr 1, 2021",
+    "lastModified": "Apr 1, 2021",
+    "contactEmails": [
+      "gonyi@acxiom.com"
+    ]
+  },
+  "help": {
+    "intro": "this is a test version of aws thing",
+    "website": "",
+    "usage": [
+      "*Basic*: `aws rm s3://......` (note that for a safety reason, wildcard is not supported)"
+    ],
+    "avgRuntimeSec": 1,
+    "maxRuntimeSec": 3
+  }
+}

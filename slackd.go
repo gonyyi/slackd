@@ -1,94 +1,71 @@
 package slackd
 
 import (
-	"encoding/json"
-	"errors"
-	"io/ioutil"
+	"github.com/gonyyi/agraceful"
+	"github.com/gonyyi/alog"
+	"github.com/gonyyi/alog/ext"
+	"github.com/gonyyi/slackd/config"
+	"github.com/gonyyi/slackd/modules"
+	"net/http"
+	"os"
 )
 
 type Slackd struct {
-	Hostname   string
-	SlackToken string
-	Service    service
-	log        Logger
-	store      Storer
-	req        Requester
+	conf    config.Config
+	log     alog.Logger
+	modules *modules.Modules
 }
 
-type service struct {
-	Name    string
-	Version string
-	Contact []string
-}
+// TAG for logging
+var DB, HTTP, USER, SYS, REQ, RES alog.Tag
 
 // New will take OPTIONAL config filename and returns a Slackd and error if any.
 func New(filename string) (*Slackd, error) {
-	// If filename is given, load it
-	// If failed to load, an error
-	if filename != "" {
-		fi, err := ioutil.ReadFile(filename)
-		if err != nil {
-			return nil, err
-		}
-		var s Slackd
-		// If cannot unmarshal the config file, return an error
-		if err := json.Unmarshal(fi, &s); err != nil {
-			return nil, err
-		}
-		// If no error, use it.
-		return &s, nil
+	if filename == "" {
+		return nil, config.ERR_CONF_FILE_REQUIRED
 	}
 
-	return &Slackd{
-		Hostname:   ":8080",
-		SlackToken: "",
-		Service: service{
-			Name:    "Slackd App",
-			Version: "0.0.1",
-			Contact: []string{},
-		},
-	}, nil
+	s := new(Slackd)
+
+	// READ CONFIGURATION
+	if err := s.conf.ReadFile(filename); err != nil {
+		s.log.Error()
+		return s, err
+	}
+
+	// LOGGER
+	s.log = alog.New(os.Stderr).SetFormatter(ext.NewFormatterTerminalColor())
+	DB = s.log.NewTag("DB")
+	HTTP = s.log.NewTag("HTTP")
+	USER = s.log.NewTag("USER")
+	SYS = s.log.NewTag("SYS")
+	REQ = s.log.NewTag("REQ")
+	RES = s.log.NewTag("RES")
+
+	// CREATE MODULES
+	s.modules = modules.NewModules(s.conf.Modules.Dir)
+
+	// READY TO START
+	s.log.Info(SYS).Write(INFO_SYS_READY_START)
+
+	return s, nil
 }
 
-// Set will set interface items for those aren't nil.
-func (s *Slackd) Set(log Logger, store Storer, req Requester) {
-	if log != nil {
-		s.log = log
-	}
-	if store != nil {
-		s.store = store
-	}
-	if req != nil {
-		s.req = req
-	}
-}
+func (s *Slackd) Run(addr string) error {
+	http.HandleFunc("/", theHandler(s))
+	agraceful.IfTerm(func() {
+		s.log.Fatal(SYS).
+			Str("signal", agraceful.GetSignal().String()).
+			Write("terminated")
+		s.log.Close()
+	})
 
-func (s *Slackd) Check() error {
-	var err error
-	err = wErrIf(s.log == nil, err, "log cannot be empty")
-	err = wErrIf(s.store == nil, err, "store cannot be empty")
-	err = wErrIf(s.req == nil, err, "req cannot be empty")
+	s.log.Info(HTTP|SYS).Str("addr", addr).Write(INFOS_SYS_STARTING)
+
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
+		s.log.Fatal(HTTP).Err("err", err).Write(FATALS_SYS_FAILED_START)
+	}
+
 	return err
-}
-
-var ERR_A = errors.New("errA")
-var ERR_B = errors.New("errB")
-var ERR_C = errors.New("errC")
-
-
-func (s *Slackd) Check2() error {
-	var err error
-	err = wErrs(err, ERR_A)
-	err = wErrs(err, ERR_C)
-	return err
-}
-
-// Run will start the service and returns an error if any.
-func (s *Slackd) Run() error {
-	// Check if required interface items (log, store, req) are not nil.
-	if err := s.Check(); err != nil {
-		return err
-	}
-
-	return nil
 }

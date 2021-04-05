@@ -1,21 +1,22 @@
 package main
 
 import (
-	"errors"
 	"github.com/gonyyi/slackd"
 )
 
 func main() {
-	sl, _ := slackd.New("")
+	test()
+}
 
-	err := sl.Check2()
-
+func t1() {
+	sl, err := slackd.New("./cmd/shorty_conf.json")
 	if err != nil {
 		println(err.Error())
-		println(errors.Is(err, slackd.ERR_A))
-		println(errors.Is(err, slackd.ERR_B))
-		println(err == slackd.ERR_C)
-	} else {
-		println("err is nil")
 	}
+
+	sl.Run("")
+}
+
+func test() {
+
 }
